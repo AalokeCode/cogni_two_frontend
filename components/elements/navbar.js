@@ -108,7 +108,7 @@ export default function Navbar({ isLoggedIn }) {
         )}
       </div>
       {mobileMenuOpen && (
-        <div className="absolute top-20 left-0 w-full bg-[#1E1E1E] z-[100] flex flex-col items-center rounded-2xl border border-neutral-700 md:hidden transition-all duration-300">
+        <div className="absolute top-20 left-0 w-full bg-[#1E1E1E] z-100 flex flex-col items-center rounded-2xl border border-neutral-700 md:hidden transition-all duration-300">
           {(isLoggedIn ? authorizedNavbarLinks : navbarLinks).map((link) => (
             <Link
               key={link.name}
