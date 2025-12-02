@@ -23,7 +23,7 @@ export default function Button({
       "bg-pink-500 text-zinc-950 hover:bg-pink-400 border border-pink-400",
   };
 
-  const baseClass = `px-5 py-2.5 rounded-lg cursor-pointer transition-all duration-200 flex items-center justify-center gap-2 font-medium ${
+  const baseClass = `px-5 py-2.5 rounded-full cursor-pointer transition-all duration-200 flex items-center justify-center gap-2 font-medium ${
     isFullWidth ? "w-full" : ""
   } ${disabled ? "opacity-50 cursor-not-allowed" : "hover:shadow-md"} ${
     variants[variant] || variants.primary

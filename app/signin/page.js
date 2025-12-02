@@ -1,117 +1,107 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
-import toast, { Toaster } from "react-hot-toast";
-import { Eye, EyeClosed } from "lucide-react";
-import Image from "next/image";
+import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 import Button from "@/components/elements/button";
+import Input from "@/components/elements/input";
 import Link from "next/link";
+import Image from "next/image";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function SignIn() {
+  const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
-  const formRef = useRef(null);
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      window.location.href = "/app/dashboard";
-    }
-  }, []);
-
-  const handleSignIn = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formRef.current.email.value || !formRef.current.password.value) {
-      toast.error("Please fill in all fields.");
-      return;
-    }
-    const data = {
-      email: formRef.current.email.value,
-      password: formRef.current.password.value,
-    };
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/login`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      }
-    );
-    if (response.ok) {
-      toast.success("Sign in successful! Redirecting to dashboard...");
-      const responseData = await response.json();
-      localStorage.setItem("token", responseData.token);
-      setTimeout(() => {
-        window.location.href = "/app/dashboard";
-      }, 2000);
+    setLoading(true);
+    try {
+      await login(formData);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
     }
   };
+
   return (
-    <div className="relative bg-[#131313] flex items-center justify-center min-h-screen px-4 py-4 overflow-hidden">
-      <Toaster />
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="absolute top-20 left-20 w-96 h-96 bg-cyan-400/10 rounded-full blur-[120px] pointer-events-none animate-pulse" />
+      <div
+        className="absolute bottom-20 right-20 w-96 h-96 bg-pink-400/10 rounded-full blur-[120px] pointer-events-none animate-pulse"
+        style={{ animationDelay: "1s" }}
+      />
 
-      <div className="absolute top-20 left-20 w-96 h-96 bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-20 right-20 w-96 h-96 bg-red-500/10 rounded-full blur-[120px] pointer-events-none" />
-
-      <div className="relative w-full max-w-md bg-[#1A1A1A]/80 backdrop-blur-sm border border-[#2A2A2A] rounded-2xl p-6 shadow-2xl">
+      <div className="w-full max-w-md relative z-10">
         <Image
           src="/logo.png"
-          alt="logo"
+          alt="cogni logo"
           width={160}
-          height={37}
-          className="logo mx-auto mb-4"
+          height={40}
+          className="mx-auto mb-8"
         />
-        <h1 className="text-2xl sm:text-3xl font-semibold mb-1 text-center text-white">
-          Welcome Back
-        </h1>
-        <p className="mb-6 text-center text-sm text-gray-400">
-          Sign in to continue to cogni
-        </p>
-        <form className="flex flex-col mb-4" ref={formRef}>
-          <label className="mb-1.5 text-sm text-gray-300">Email</label>
-          <input
-            type="email"
-            name="email"
-            placeholder="Enter your email address"
-            className="bg-[#1E1E1E] w-full p-2.5 border border-[#343434] rounded-lg mb-4 text-white placeholder-gray-500 transition-all duration-200 ease-in-out hover:border-[#4A4A4A] focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-white/30 text-sm"
-          />
-          <label className="mb-1.5 text-sm text-gray-300">Password</label>
-          <div className="relative flex items-center mb-5">
-            <input
-              type={showPassword ? "text" : "password"}
-              name="password"
-              placeholder="⋅⋅⋅⋅⋅⋅⋅"
-              suggested="current-password"
-              className="bg-[#1E1E1E] w-full p-2.5 pr-10 border border-[#343434] rounded-lg text-white placeholder-neutral-500 transition-all duration-200 ease-in-out hover:border-[#4A4A4A] focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-white/30 text-sm"
+
+        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-8">
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-bold text-zinc-50 mb-2">
+              Welcome back
+            </h1>
+            <p className="text-zinc-400">Sign in to continue your learning</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Input
+              type="email"
+              label="Email"
+              placeholder="you@example.com"
+              value={formData.email}
+              onChange={(e) =>
+                setFormData({ ...formData, email: e.target.value })
+              }
+              required
             />
-            <span className="absolute right-3 cursor-pointer flex items-center h-full top-0">
-              {showPassword ? (
-                <EyeClosed onClick={() => setShowPassword(false)} />
-              ) : (
-                <Eye onClick={() => setShowPassword(true)} />
-              )}
-            </span>
-          </div>
-          <div className="text-[#131313] flex mb-4">
+
+            <div className="relative">
+              <Input
+                type={showPassword ? "text" : "password"}
+                label="Password"
+                placeholder="••••••••"
+                value={formData.password}
+                onChange={(e) =>
+                  setFormData({ ...formData, password: e.target.value })
+                }
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-[38px] text-zinc-400 hover:text-zinc-50"
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
+
             <Button
-              backgroundColor="white"
-              textColor="[#131313]"
-              isFullWidth="true"
-              clickHandler={handleSignIn}
+              variant="primary"
+              isFullWidth
+              disabled={loading}
+              clickHandler={handleSubmit}
             >
-              Sign In
+              {loading ? "Signing in..." : "Sign In"}
             </Button>
-          </div>
-        </form>
-        <p className="text-center text-sm text-gray-400">
-          New to cogni?{" "}
-          <Link
-            className="underline text-white hover:text-gray-300 transition-colors"
-            href="signup"
-          >
-            Sign Up
-          </Link>
-        </p>
+          </form>
+
+          <p className="text-center text-zinc-400 text-sm mt-6">
+            Don&apos;t have an account?{" "}
+            <Link href="/signup" className="text-cyan-400 hover:text-cyan-300">
+              Sign up
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );
