@@ -10,11 +10,13 @@ const getAuthHeaders = () => {
   };
 };
 
-const handleResponse = async (response) => {
+const handleResponse = async (response, silent = false) => {
   const data = await response.json();
   if (!response.ok) {
     const error = data.message || "Something went wrong";
-    toast.error(error);
+    if (!silent) {
+      toast.error(error);
+    }
     throw new Error(error);
   }
   return data;
@@ -78,7 +80,17 @@ export const curriculumAPI = {
 export const quizAPI = {
   generate: (curriculumId) =>
     api.post(`/api/curriculum/${curriculumId}/quiz/generate`),
-  get: (curriculumId) => api.get(`/api/curriculum/${curriculumId}/quiz`),
+  get: async (curriculumId) => {
+    // Silent get - don't show error toast if quiz doesn't exist
+    const response = await fetch(
+      `${API_URL}/api/curriculum/${curriculumId}/quiz`,
+      {
+        method: "GET",
+        headers: getAuthHeaders(),
+      }
+    );
+    return handleResponse(response, true);
+  },
   submit: (curriculumId, answers) =>
     api.post(`/api/curriculum/${curriculumId}/quiz/submit`, { answers }),
   delete: (curriculumId) => api.delete(`/api/curriculum/${curriculumId}/quiz`),

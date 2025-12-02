@@ -27,7 +27,6 @@ import {
   Check,
   X,
   Layers,
-  Zap,
   AlertCircle,
   Target,
 } from "lucide-react";
@@ -50,6 +49,7 @@ function CurriculumDetailPage() {
   const [editingTitle, setEditingTitle] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [deleteModal, setDeleteModal] = useState(null);
+  const [progress, setProgress] = useState({});
 
   const hasEnoughCredits = user?.credits >= QUIZ_CREDIT_COST;
 
@@ -62,12 +62,16 @@ function CurriculumDetailPage() {
       const data = await curriculumAPI.getById(params.id);
       setCurriculum(data.data);
       setNewTitle(data.data.title);
+      setProgress(data.data.progress || {});
 
       // Try to fetch quiz
       try {
         const quizData = await quizAPI.get(params.id);
-        setQuiz(quizData.data.quiz);
-        setQuizResult(quizData.data.result);
+        // Backend returns { success: true, data: quiz } where quiz has results array
+        const quizObj = quizData.data;
+        setQuiz(quizObj);
+        // Get the latest result if exists
+        setQuizResult(quizObj.results?.[0] || null);
       } catch {
         // No quiz exists
         setQuiz(null);
@@ -87,6 +91,44 @@ function CurriculumDetailPage() {
       ...prev,
       [index]: !prev[index],
     }));
+  };
+
+  const toggleProgress = async (key) => {
+    const prevProgress = { ...progress };
+    const newProgress = {
+      ...progress,
+      [key]: !progress[key],
+    };
+    setProgress(newProgress);
+
+    try {
+      await curriculumAPI.update(params.id, { progress: newProgress });
+    } catch {
+      // Revert on error
+      setProgress(prevProgress);
+    }
+  };
+
+  // Calculate overall progress
+  const calculateOverallProgress = () => {
+    if (!curriculum?.modules) return 0;
+    let totalItems = 0;
+    let completedItems = 0;
+
+    curriculum.modules.forEach((module, moduleIndex) => {
+      // Count module
+      totalItems++;
+      if (progress[`module-${moduleIndex}`]) completedItems++;
+
+      // Count lessons
+      module.lessons?.forEach((_, lessonIndex) => {
+        totalItems++;
+        if (progress[`module-${moduleIndex}-lesson-${lessonIndex}`])
+          completedItems++;
+      });
+    });
+
+    return totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
   };
 
   const handleGenerateQuiz = async () => {
@@ -354,6 +396,24 @@ function CurriculumDetailPage() {
             </div>
           </div>
 
+          {/* Progress Bar */}
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 mb-8">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-zinc-400">
+                Overall Progress
+              </span>
+              <span className="text-sm font-bold text-teal-400">
+                {calculateOverallProgress()}%
+              </span>
+            </div>
+            <div className="w-full h-2 bg-zinc-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-teal-400 transition-all duration-300"
+                style={{ width: `${calculateOverallProgress()}%` }}
+              />
+            </div>
+          </div>
+
           {/* Meta Info */}
           <div className="flex flex-wrap gap-4 mb-8">
             <span
@@ -391,7 +451,7 @@ function CurriculumDetailPage() {
                   <div className="flex-1">
                     <p className="text-zinc-400 mb-1">Your Score</p>
                     <p className="text-3xl font-bold text-zinc-50">
-                      {quizResult.score}%
+                      {Math.round(quizResult.score)}%
                     </p>
                   </div>
                   <div className="flex gap-2">
@@ -417,12 +477,12 @@ function CurriculumDetailPage() {
                       Focus Areas for Improvement:
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {quizResult.weakTopics.map((topic, i) => (
+                      {quizResult.weakTopics.map((item, i) => (
                         <span
                           key={i}
                           className="text-sm px-2 py-1 rounded bg-rose-500/20 text-rose-400"
                         >
-                          {topic}
+                          {typeof item === "object" ? item.topic : item}
                         </span>
                       ))}
                     </div>
@@ -460,7 +520,7 @@ function CurriculumDetailPage() {
               <div>
                 {!hasEnoughCredits && (
                   <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-4 flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
+                    <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
                     <p className="text-red-400 text-sm">
                       You need {QUIZ_CREDIT_COST} credits. You have{" "}
                       {user.credits}.
@@ -503,54 +563,129 @@ function CurriculumDetailPage() {
               Modules
             </h2>
             <div className="space-y-3">
-              {curriculum.modules?.map((module, moduleIndex) => (
-                <div
-                  key={moduleIndex}
-                  className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden"
-                >
-                  <button
-                    onClick={() => toggleModule(moduleIndex)}
-                    className="w-full flex items-center justify-between p-4 text-left hover:bg-zinc-800/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="w-8 h-8 rounded-lg bg-teal-400/20 text-teal-400 flex items-center justify-center text-sm font-medium">
-                        {moduleIndex + 1}
-                      </span>
-                      <span className="text-zinc-50 font-medium">
-                        {module.title}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-zinc-400">
-                      <span className="text-sm">
-                        {module.lessons?.length || 0} lessons
-                      </span>
-                      {expandedModules[moduleIndex] ? (
-                        <ChevronDown className="w-5 h-5" />
-                      ) : (
-                        <ChevronRight className="w-5 h-5" />
-                      )}
-                    </div>
-                  </button>
+              {curriculum.modules?.map((module, moduleIndex) => {
+                const moduleKey = `module-${moduleIndex}`;
+                const moduleCompleted = progress[moduleKey];
+                const lessonsCompleted =
+                  module.lessons?.filter(
+                    (_, i) => progress[`module-${moduleIndex}-lesson-${i}`]
+                  ).length || 0;
+                const totalLessons = module.lessons?.length || 0;
 
-                  {expandedModules[moduleIndex] && (
-                    <div className="border-t border-zinc-800">
-                      {module.lessons?.map((lesson, lessonIndex) => (
-                        <div
-                          key={lessonIndex}
-                          className="p-4 border-b border-zinc-800 last:border-b-0"
-                        >
-                          <h4 className="text-zinc-50 font-medium mb-2">
-                            {lessonIndex + 1}. {lesson.title}
-                          </h4>
-                          <p className="text-zinc-400 text-sm whitespace-pre-wrap">
-                            {lesson.content}
-                          </p>
+                return (
+                  <div
+                    key={moduleIndex}
+                    className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden"
+                  >
+                    <div className="flex items-center">
+                      {/* Module Checkbox */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleProgress(moduleKey);
+                        }}
+                        className={`ml-4 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                          moduleCompleted
+                            ? "bg-teal-400 border-teal-400"
+                            : "border-zinc-600 hover:border-zinc-500"
+                        }`}
+                      >
+                        {moduleCompleted && (
+                          <Check className="w-3 h-3 text-zinc-950" />
+                        )}
+                      </button>
+
+                      <button
+                        onClick={() => toggleModule(moduleIndex)}
+                        className="flex-1 flex items-center justify-between p-4 text-left hover:bg-zinc-800/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-medium ${
+                              moduleCompleted
+                                ? "bg-teal-400/20 text-teal-400"
+                                : "bg-zinc-800 text-zinc-400"
+                            }`}
+                          >
+                            {moduleIndex + 1}
+                          </span>
+                          <span
+                            className={`font-medium ${
+                              moduleCompleted
+                                ? "text-zinc-400 line-through"
+                                : "text-zinc-50"
+                            }`}
+                          >
+                            {module.title}
+                          </span>
                         </div>
-                      ))}
+                        <div className="flex items-center gap-3 text-zinc-400">
+                          <span className="text-sm">
+                            {lessonsCompleted}/{totalLessons} lessons
+                          </span>
+                          {expandedModules[moduleIndex] ? (
+                            <ChevronDown className="w-5 h-5" />
+                          ) : (
+                            <ChevronRight className="w-5 h-5" />
+                          )}
+                        </div>
+                      </button>
                     </div>
-                  )}
-                </div>
-              ))}
+
+                    {expandedModules[moduleIndex] && (
+                      <div className="border-t border-zinc-800">
+                        {module.lessons?.map((lesson, lessonIndex) => {
+                          const lessonKey = `module-${moduleIndex}-lesson-${lessonIndex}`;
+                          const lessonCompleted = progress[lessonKey];
+
+                          return (
+                            <div
+                              key={lessonIndex}
+                              className="p-4 border-b border-zinc-800 last:border-b-0"
+                            >
+                              <div className="flex items-start gap-3">
+                                {/* Lesson Checkbox */}
+                                <button
+                                  onClick={() => toggleProgress(lessonKey)}
+                                  className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
+                                    lessonCompleted
+                                      ? "bg-teal-400 border-teal-400"
+                                      : "border-zinc-600 hover:border-zinc-500"
+                                  }`}
+                                >
+                                  {lessonCompleted && (
+                                    <Check className="w-3 h-3 text-zinc-950" />
+                                  )}
+                                </button>
+                                <div className="flex-1">
+                                  <h4
+                                    className={`font-medium mb-2 ${
+                                      lessonCompleted
+                                        ? "text-zinc-500 line-through"
+                                        : "text-zinc-50"
+                                    }`}
+                                  >
+                                    {lessonIndex + 1}. {lesson.title}
+                                  </h4>
+                                  <p
+                                    className={`text-sm whitespace-pre-wrap ${
+                                      lessonCompleted
+                                        ? "text-zinc-600"
+                                        : "text-zinc-400"
+                                    }`}
+                                  >
+                                    {lesson.content}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 

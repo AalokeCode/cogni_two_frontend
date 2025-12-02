@@ -31,9 +31,10 @@ function DashboardPage() {
     const fetchData = async () => {
       try {
         const curriculaData = await curriculumAPI.getAll();
-        const curriculaArray = Array.isArray(curriculaData)
-          ? curriculaData
-          : curriculaData.curricula || [];
+        // Backend returns { success: true, data: [...] }
+        const curriculaArray = Array.isArray(curriculaData.data)
+          ? curriculaData.data
+          : curriculaData.data?.curricula || [];
         setCurricula(curriculaArray.slice(0, 5));
 
         // Count total quizzes taken
@@ -41,7 +42,7 @@ function DashboardPage() {
         for (const curriculum of curriculaArray) {
           try {
             const quizData = await curriculumAPI.getById(curriculum.id);
-            if (quizData.quiz) quizCount++;
+            if (quizData.data?.quiz) quizCount++;
           } catch {
             // Quiz doesn't exist for this curriculum
           }

@@ -39,12 +39,22 @@ function CurriculaPage() {
 
   useEffect(() => {
     fetchCurricula();
-  }, []);
+  }, [searchQuery, difficultyFilter, sortOrder]);
 
   const fetchCurricula = async () => {
+    setLoading(true);
     try {
-      const data = await curriculumAPI.getAll();
-      const curriculaArray = Array.isArray(data) ? data : data.curricula || [];
+      const params = {};
+      if (searchQuery) params.search = searchQuery;
+      if (difficultyFilter !== "all") params.difficulty = difficultyFilter;
+      params.sortBy = "createdAt";
+      params.order = sortOrder === "newest" ? "desc" : "asc";
+
+      const data = await curriculumAPI.getAll(params);
+      // Backend returns { success: true, data: [...] }
+      const curriculaArray = Array.isArray(data.data)
+        ? data.data
+        : data.data?.curricula || [];
       setCurricula(curriculaArray);
     } catch (error) {
       console.error("Failed to fetch curricula:", error);
