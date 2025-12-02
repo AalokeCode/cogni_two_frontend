@@ -1,3 +1,5 @@
+import toast from "react-hot-toast";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 const getAuthHeaders = () => {
@@ -11,7 +13,9 @@ const getAuthHeaders = () => {
 const handleResponse = async (response) => {
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(data.message || "Something went wrong");
+    const error = data.message || "Something went wrong";
+    toast.error(error);
+    throw new Error(error);
   }
   return data;
 };
