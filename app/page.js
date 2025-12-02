@@ -6,7 +6,7 @@ export default function Home() {
     <div className="relative bg-[#131313] min-h-screen flex items-center justify-center px-4 overflow-hidden">
       <div className="absolute top-20 left-20 w-96 h-96 bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-20 right-20 w-96 h-96 bg-red-500/10 rounded-full blur-[120px] pointer-events-none" />
-      
+
       <div className="relative text-center z-10 max-w-2xl">
         <Image
           src="/logo.png"
@@ -21,7 +21,7 @@ export default function Home() {
         <p className="text-2xl md:text-3xl text-gray-400 mb-12 tracking-wide">
           Coming Soon
         </p>
-        
+
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
           <Button
             backgroundColor="white"
