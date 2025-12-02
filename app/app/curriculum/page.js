@@ -77,8 +77,10 @@ function CurriculaPage() {
   };
 
   const getSortLabel = () => {
-    if (sortBy === "createdAt") return order === "desc" ? "Newest First" : "Oldest First";
-    if (sortBy === "updatedAt") return order === "desc" ? "Recently Updated" : "Least Recently Updated";
+    if (sortBy === "createdAt")
+      return order === "desc" ? "Newest First" : "Oldest First";
+    if (sortBy === "updatedAt")
+      return order === "desc" ? "Recently Updated" : "Least Recently Updated";
     if (sortBy === "title") return order === "asc" ? "A-Z" : "Z-A";
     return "Newest First";
   };
@@ -249,11 +251,15 @@ function CurriculaPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <BarChart3 className="w-4 h-4" />
-                      <span className="capitalize">{curriculum.depth} Depth</span>
+                      <span className="capitalize">
+                        {curriculum.depth} Depth
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Calendar className="w-4 h-4" />
-                      <span>{new Date(curriculum.createdAt).toLocaleDateString()}</span>
+                      <span>
+                        {new Date(curriculum.createdAt).toLocaleDateString()}
+                      </span>
                     </div>
                   </div>
 
